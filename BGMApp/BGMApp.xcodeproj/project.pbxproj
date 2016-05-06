@@ -54,6 +54,7 @@
 		27D643BE1C9FB84C00737F6E /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 27D643BB1C9FB84C00737F6E /* Info.plist */; };
 		27D643C01C9FB99200737F6E /* BGMXPCHelperService.m in Sources */ = {isa = PBXBuildFile; fileRef = 27D643BA1C9FB84C00737F6E /* BGMXPCHelperService.m */; };
 		27D643C11C9FB99200737F6E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 27D643BC1C9FB84C00737F6E /* main.m */; };
+		B0C97D021CDCE8ED000305E2 /* BGMRadiantPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = B0C97CFF1CDCE8ED000305E2 /* BGMRadiantPlayer.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,6 +174,9 @@
 		27D643BB1C9FB84C00737F6E /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BGMXPCHelper/Info.plist; sourceTree = SOURCE_ROOT; };
 		27D643BC1C9FB84C00737F6E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = BGMXPCHelper/main.m; sourceTree = SOURCE_ROOT; };
 		27D643C41C9FBE5600737F6E /* BGM_TestUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BGM_TestUtils.h; path = ../SharedSource/BGM_TestUtils.h; sourceTree = "<group>"; };
+		B0C97CFF1CDCE8ED000305E2 /* BGMRadiantPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BGMRadiantPlayer.m; path = "Music Players/BGMRadiantPlayer.m"; sourceTree = "<group>"; };
+		B0C97D001CDCE8ED000305E2 /* RadiantPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RadiantPlayer.h; path = "Music Players/RadiantPlayer.h"; sourceTree = "<group>"; };
+		B0C97D011CDCE8ED000305E2 /* BGMRadiantPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BGMRadiantPlayer.h; path = "Music Players/BGMRadiantPlayer.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -278,6 +282,9 @@
 		1C4699451BD5BF2E00F78043 /* Music Players */ = {
 			isa = PBXGroup;
 			children = (
+				B0C97CFF1CDCE8ED000305E2 /* BGMRadiantPlayer.m */,
+				B0C97D001CDCE8ED000305E2 /* RadiantPlayer.h */,
+				B0C97D011CDCE8ED000305E2 /* BGMRadiantPlayer.h */,
 				1C2336DC1BEAB73F004C1C4E /* BGMMusicPlayer.h */,
 				1C2336D91BEAB6E7004C1C4E /* BGMMusicPlayer.m */,
 				1C2336DB1BEAB73F004C1C4E /* BGMiTunes.h */,
@@ -600,6 +607,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B0C97D021CDCE8ED000305E2 /* BGMRadiantPlayer.m in Sources */,
 				1C4699471BD5C0E400F78043 /* BGMiTunes.m in Sources */,
 				1C1962E41BC94E15008A4DF7 /* CARingBuffer.cpp in Sources */,
 				273F10DF1CC3D0B900C1C6DA /* BGMVox.m in Sources */,
