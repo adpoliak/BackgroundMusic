@@ -38,7 +38,7 @@
 BGM_MUSIC_PLAYER_DEFAULT_LOAD_METHOD
 
 + (NSString*) name {
-    return @"RadiantPlayer";
+    return @"Radiant Player";
 }
 
 - (CFNumberRef) pid {
@@ -82,16 +82,18 @@ BGM_MUSIC_PLAYER_DEFAULT_LOAD_METHOD
 }
 
 - (BOOL) isPlaying {
-    return [self isRunning] && [self.radiantplayer isRunning] && [self.radiantplayer playerState] == 2;
+    DebugMsg("BGMRadiantPlayer::isPlaying: player state %ld", [self.radiantplayer playerState]);
+    return [self isRunning] && [self.radiantplayer playerState] == 2;
 }
 
 - (BOOL) isPaused {
-    return [self isRunning] && [self.radiantplayer isRunning] && [self.radiantplayer playerState] == 1;
+    DebugMsg("BGMRadiantPlayer::isPaused: player state %ld", [self.radiantplayer playerState]);
+    return [self isRunning] && [self.radiantplayer playerState] == 1;
 }
 
 // need to execute RadiantPlayerApplication playpause
 - (void) togglePlay {
-    if ([self isRunning] && [self.radiantplayer isRunning])
+    if ([self isRunning])
         [self.radiantplayer playpause];
 }
 
