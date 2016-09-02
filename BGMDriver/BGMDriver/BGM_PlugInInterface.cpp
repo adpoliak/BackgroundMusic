@@ -20,7 +20,7 @@
 //  Copyright © 2016 Kyle Neideck
 //  Portions copyright (C) 2013 Apple Inc. All Rights Reserved.
 //
-//  Based largely on SA_PlugIn.cpp from Apple's SimpleAudioPlugin sample code.
+//  Based largely on SA_PlugIn.cpp from Apple's SimpleAudioDriver Plug-In sample code.
 //  https://developer.apple.com/library/mac/samplecode/AudioDriverExamples
 //
 
@@ -561,7 +561,8 @@ static OSStatus	BGM_SetPropertyData(AudioServerPlugInDriverRef inDriver, AudioOb
 	{
 		//	check the arguments
 		ThrowIf(inDriver != gAudioServerPlugInDriverRef, CAException(kAudioHardwareBadObjectError), "BGM_SetPropertyData: bad driver reference");
-		ThrowIfNULL(inAddress, CAException(kAudioHardwareIllegalOperationError), "BGM_SetPropertyData: no address");
+        ThrowIfNULL(inAddress, CAException(kAudioHardwareIllegalOperationError), "BGM_SetPropertyData: no address");
+        ThrowIfNULL(inData, CAException(kAudioHardwareIllegalOperationError), "BGM_SetPropertyData: no data");
 		
         BGM_Object& theAudioObject = BGM_LookUpOwnerObject(inObjectID);
 		if(theAudioObject.HasProperty(inObjectID, inClientProcessID, *inAddress))
