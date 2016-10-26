@@ -24,9 +24,12 @@
 #import "AppDelegate.h"
 
 // Local Includes
-#include "BGM_Types.h"
+#import "BGM_Types.h"
+#import "BGMUserDefaults.h"
 #import "BGMAudioDeviceManager.h"
+#import "BGMMusicPlayers.h"
 #import "BGMAutoPauseMusic.h"
+#import "BGMAutoPauseMenuItem.h"
 #import "BGMAppVolumes.h"
 #import "BGMPreferencesMenu.h"
 #import "BGMXPCListener.h"
@@ -39,7 +42,12 @@ static float const kStatusBarIconPadding = 0.25;
     // for the app. These are called "menu bar extras" in the Human Interface Guidelines.
     NSStatusItem* statusBarItem;
     
+    // Only show the 'BGMXPCHelper is missing' error dialog once.
+    BOOL haveShownXPCHelperErrorMessage;
+    
     BGMAutoPauseMusic* autoPauseMusic;
+    BGMAutoPauseMenuItem* autoPauseMenuItem;
+    BGMMusicPlayers* musicPlayers;
     BGMAppVolumes* appVolumes;
     BGMAudioDeviceManager* audioDevices;
     BGMPreferencesMenu* prefsMenu;
@@ -47,6 +55,8 @@ static float const kStatusBarIconPadding = 0.25;
 }
 
 - (void) awakeFromNib {
+    haveShownXPCHelperErrorMessage = NO;
+    
     // Set up the status bar item
     statusBarItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     
@@ -70,47 +80,53 @@ static float const kStatusBarIconPadding = 0.25;
 
 - (void) applicationDidFinishLaunching:(NSNotification*)aNotification {
     #pragma unused (aNotification)
-    
-    // Set up the GUI and other external interfaces.
 
-    // Coordinates the audio devices (BGMDevice and the output device): manages playthrough, volume/mute controls, etc.
+    // Set up the rest of the UI and other external interfaces.
+    
+    BGMUserDefaults* userDefaults = [BGMUserDefaults new];
+    [userDefaults registerDefaults];
+
+    // audioDevices coordinates BGMDevice and the output device. It manages playthrough, volume/mute controls, etc.
     NSError* err;
     audioDevices = [[BGMAudioDeviceManager alloc] initWithError:&err];
     if (audioDevices == nil) {
         [self showDeviceNotFoundErrorMessageAndExit:err.code];
     }
+    
     [audioDevices setBGMDeviceAsOSDefault];
     
-    autoPauseMusic = [[BGMAutoPauseMusic alloc] initWithAudioDevices:audioDevices];
+    musicPlayers = [[BGMMusicPlayers alloc] initWithAudioDevices:audioDevices
+                                                    userDefaults:userDefaults];
+    
+    autoPauseMusic = [[BGMAutoPauseMusic alloc] initWithAudioDevices:audioDevices
+                                                        musicPlayers:musicPlayers];
+    
+    autoPauseMenuItem = [[BGMAutoPauseMenuItem alloc] initWithMenuItem:self.autoPauseMenuItemUnwrapped
+                                                        autoPauseMusic:autoPauseMusic
+                                                          musicPlayers:musicPlayers
+                                                          userDefaults:userDefaults];
     
     xpcListener = [[BGMXPCListener alloc] initWithAudioDevices:audioDevices
                                   helperConnectionErrorHandler:^(NSError* error) {
-                                      [self showXPCHelperErrorMessageAndExit:error];
+                                      NSLog(@"AppDelegate::applicationDidFinishLaunching: (helperConnectionErrorHandler) "
+                                             "BGMXPCHelper connection error: %@",
+                                            error);
+                                      
+                                      [self showXPCHelperErrorMessage:error];
                                   }];
     
-    appVolumes = [[BGMAppVolumes alloc] initWithMenu:[self bgmMenu]
-                                       appVolumeView:[self appVolumeView]
+    appVolumes = [[BGMAppVolumes alloc] initWithMenu:self.bgmMenu
+                                       appVolumeView:self.appVolumeView
                                         audioDevices:audioDevices];
     
-    prefsMenu = [[BGMPreferencesMenu alloc] initWithbgmMenu:[self bgmMenu]
+    prefsMenu = [[BGMPreferencesMenu alloc] initWithBGMMenu:self.bgmMenu
                                                audioDevices:audioDevices
-                                                 aboutPanel:[self aboutPanel]
-                                      aboutPanelLicenseView:[self aboutPanelLicenseView]];
+                                               musicPlayers:musicPlayers
+                                                 aboutPanel:self.aboutPanel
+                                      aboutPanelLicenseView:self.aboutPanelLicenseView];
     
-    [self loadUserDefaults];
-}
-
-- (void) loadUserDefaults {
-    // Register the preference defaults. These are the preferences/state that only apply to BGMApp. The others are
-    // persisted on BGMDriver.
-    NSDictionary* appDefaults = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES]
-                                                            forKey:@"AutoPauseMusicEnabled"];
-    [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
-    
-    // Enable auto-pausing music if it's enabled in the user's preferences (which it is by default).
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"AutoPauseMusicEnabled"]) {
-        [self toggleAutoPauseMusic:self];
-    }
+    // Handle events about the main menu. (See the NSMenuDelegate methods below.)
+    self.bgmMenu.delegate = self;
 }
 
 - (void) showDeviceNotFoundErrorMessageAndExit:(NSInteger)code {
@@ -135,22 +151,26 @@ static float const kStatusBarIconPadding = 0.25;
     });
 }
 
-- (void) showXPCHelperErrorMessageAndExit:(NSError*)error {
-    // NSAlert should only be used on the main thread.
-    dispatch_async(dispatch_get_main_queue(), ^{
-        NSAlert* alert = [NSAlert new];
+- (void) showXPCHelperErrorMessage:(NSError*)error {
+    if (!haveShownXPCHelperErrorMessage) {
+        haveShownXPCHelperErrorMessage = YES;
         
-        // TODO: Offer to install BGMXPCHelper if it's missing.
-        [alert setMessageText:@"Error connecting to BGMXPCHelper."];
-        [alert setInformativeText:[NSString stringWithFormat:@"%s%s%@ (%lu)",
-                                   "Make sure you have BGMXPCHelper installed. There are instructions in the README.md file.",
-                                   "\n\nDetails:\n",
-                                   [error localizedDescription],
-                                   [error code]]];
-        
-        [alert runModal];
-        [NSApp terminate:self];
-    });
+        // NSAlert should only be used on the main thread.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSAlert* alert = [NSAlert new];
+            
+            // TODO: Offer to install BGMXPCHelper if it's missing.
+            [alert setMessageText:@"Error connecting to BGMXPCHelper."];
+            [alert setInformativeText:[NSString stringWithFormat:@"%s%s%@ (%lu)",
+                                       "Make sure you have BGMXPCHelper installed. There are instructions in the "
+                                       "README.md file.\n\n"
+                                       "Background Music might still work, but it won't work as well as it could.",
+                                       "\n\nDetails:\n",
+                                       [error localizedDescription],
+                                       [error code]]];
+            [alert runModal];
+        });
+    }
 }
 
 - (void) applicationWillTerminate:(NSNotification*)aNotification {
@@ -158,20 +178,22 @@ static float const kStatusBarIconPadding = 0.25;
     [audioDevices unsetBGMDeviceAsOSDefault];
 }
 
-- (IBAction) toggleAutoPauseMusic:(id)sender {
-    #pragma unused (sender)
-    
-    if (self.autoPauseMenuItem.state == NSOnState) {
-        self.autoPauseMenuItem.state = NSOffState;
-        [autoPauseMusic disable];
+#pragma mark NSMenuDelegate
+
+- (void) menuNeedsUpdate:(NSMenu*)menu {
+    if ([menu isEqual:self.bgmMenu]) {
+        [autoPauseMenuItem parentMenuNeedsUpdate];
     } else {
-        self.autoPauseMenuItem.state = NSOnState;
-        [autoPauseMusic enable];
+        DebugMsg("AppDelegate::menuNeedsUpdate: Warning: unexpected menu. menu=%s", menu.description.UTF8String);
     }
-    
-    // Persist the change in the user's preferences
-    [[NSUserDefaults standardUserDefaults] setBool:(self.autoPauseMenuItem.state == NSOnState)
-                                            forKey:@"AutoPauseMusicEnabled"];
+}
+
+- (void) menu:(NSMenu*)menu willHighlightItem:(NSMenuItem* __nullable)item {
+    if ([menu isEqual:self.bgmMenu]) {
+        [autoPauseMenuItem parentMenuItemWillHighlight:item];
+    } else {
+        DebugMsg("AppDelegate::menu: Warning: unexpected menu. menu=%s", menu.description.UTF8String);
+    }
 }
 
 @end

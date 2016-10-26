@@ -18,6 +18,7 @@
 //  BGMDriver
 //
 //  Copyright © 2016 Kyle Neideck
+//  Copyright © 2016 Josh Junon
 //  Portions copyright (C) 2013 Apple Inc. All Rights Reserved.
 //
 //  Based largely on SA_Device.cpp from Apple's SimpleAudioDriver Plug-In sample code. Also uses a few sections from Apple's
@@ -38,7 +39,10 @@
 #include "CACFArray.h"
 #include "CACFString.h"
 #include "CADebugMacros.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
 #include "CAAtomic.h"
+#pragma clang diagnostic pop
 
 // System Includes
 #include <mach/mach_time.h>
@@ -79,12 +83,12 @@ BGM_Device::BGM_Device()
 	mStateMutex("Device State"),
 	mIOMutex("Device IO"),
 	mSampleRateShadow(0),
+    mWrappedAudioEngine(NULL),
+    mClients(&mTaskQueue),
+	mInputStreamIsActive(true),
+    mOutputStreamIsActive(true),
     mDeviceAudibleState(kBGMDeviceIsSilent),
     mAudibleStateSampleTimes({0, 0, 0, 0}),
-    mClients(&mTaskQueue),
-    mWrappedAudioEngine(NULL),
-	mInputStreamIsActive(true),
-	mOutputStreamIsActive(true),
 	//mInputMasterVolumeControlRawValueShadow(kDefaultMinRawVolumeValue),
 	mOutputMasterVolumeControlRawValueShadow(kDefaultMinRawVolumeValue),
     mOutputMasterMinRawVolumeShadow(kDefaultMinRawVolumeValue),
@@ -2105,15 +2109,15 @@ void	BGM_Device::ApplyClientRelativeVolume(UInt32 inClientID, UInt32 inIOBufferF
 
 bool	BGM_Device::BufferIsAudible(UInt32 inIOBufferFrameSize, const void* inBuffer)
 {
-    bool audible = false;
-    
     // Check each frame to see if any are audible
     for(UInt32 i = 0; i < inIOBufferFrameSize * 2; i++)
     {
-        audible = audible || (0. != reinterpret_cast<const Float32*>(inBuffer)[i]);
+        if (0. != reinterpret_cast<const Float32*>(inBuffer)[i]) {
+            return true;
+        }
     }
     
-    return audible;
+    return false;
 }
 
 void	BGM_Device::UpdateAudibleStateSampleTimes_PreMix(UInt32 inClientID, UInt32 inIOBufferFrameSize, Float64 inOutputSampleTime, const void* inBuffer)
@@ -2272,7 +2276,7 @@ UInt32	BGM_Device::_HW_GetRingBufferFrameSize() const
     return (mWrappedAudioEngine != NULL) ? mWrappedAudioEngine->GetSampleBufferFrameSize() : 0;
 }
 
-SInt32	BGM_Device::_HW_GetVolumeControlValue(int inObjectID) const
+SInt32	BGM_Device::_HW_GetVolumeControlValue(AudioObjectID inObjectID) const
 {
     if(mWrappedAudioEngine != NULL)
     {
@@ -2290,7 +2294,7 @@ SInt32	BGM_Device::_HW_GetVolumeControlValue(int inObjectID) const
     Throw(CAException(kAudioHardwareBadObjectError));
 }
 
-kern_return_t	BGM_Device::_HW_SetVolumeControlValue(int inObjectID, SInt32 inNewControlValue)
+kern_return_t	BGM_Device::_HW_SetVolumeControlValue(AudioObjectID inObjectID, SInt32 inNewControlValue)
 {
     kern_return_t theError = 0;
     

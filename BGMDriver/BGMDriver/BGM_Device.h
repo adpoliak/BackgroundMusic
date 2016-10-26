@@ -135,8 +135,8 @@ private:
 	Float64						_HW_GetSampleRate() const;
 	kern_return_t				_HW_SetSampleRate(Float64 inNewSampleRate);
 	UInt32						_HW_GetRingBufferFrameSize() const;
-	SInt32						_HW_GetVolumeControlValue(int inObjectID) const;
-	kern_return_t				_HW_SetVolumeControlValue(int inObjectID, SInt32 inNewControlValue);
+	SInt32						_HW_GetVolumeControlValue(AudioObjectID inObjectID) const;
+	kern_return_t				_HW_SetVolumeControlValue(AudioObjectID inObjectID, SInt32 inNewControlValue);
     UInt32                      _HW_GetMuteControlValue(AudioObjectID inObjectID) const;
     kern_return_t               _HW_SetMuteControlValue(AudioObjectID inObjectID, UInt32 inValue);
 
@@ -172,7 +172,7 @@ private:
     CAMutex                     mStateMutex;
     CAMutex						mIOMutex;
     
-    UInt64						mSampleRateShadow;  // Currently unused
+    UInt64 __unused				mSampleRateShadow;  // Currently unused.
     const Float64               kSampleRateDefault = 44100.0;
     // Before we can change sample rate, the host has to stop the device. The new sample rate is stored here while it does.
     Float64                     mPendingSampleRate;
